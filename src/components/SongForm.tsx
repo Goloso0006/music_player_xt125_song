@@ -1,33 +1,71 @@
+import type { ChangeEvent } from "react"
 import type { Song } from "../models/Song"
 
 type Props = {
   onSongsLoaded: (songs: Song[]) => void
 }
 
-const SongForm = ({ onSongsLoaded }: Props) => {
+const readFileAsDataUrl = (file: File) => {
+  return new Promise<string>((resolve) => {
+    const reader = new FileReader()
 
-  const handleFolderUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
+    reader.onload = () => {
+      resolve(typeof reader.result === "string" ? reader.result : "")
+    }
+
+    reader.onerror = () => {
+      resolve("")
+    }
+
+    reader.readAsDataURL(file)
+  })
+}
+
+const getAudioDuration = (file: File) => {
+  return new Promise<number>((resolve) => {
+    const audio = document.createElement("audio")
+    const objectUrl = URL.createObjectURL(file)
+
+    audio.preload = "metadata"
+    audio.onloadedmetadata = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(audio.duration || 0)
+    }
+    audio.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(0)
+    }
+    audio.src = objectUrl
+  })
+}
+
+const SongForm = ({ onSongsLoaded }: Props) => {
+  const handleFolderUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.currentTarget.files
     if (!files) return
 
-    const songs: Song[] = []
+    const audioFiles = Array.from(files).filter((file) => file.type.startsWith("audio/"))
 
-    Array.from(files).forEach((file) => {
-      // 🎵 Filtrar solo mp3
-      if (file.type === "audio/mpeg") {
-        const song: Song = {
+    const songs = await Promise.all(
+      audioFiles.map(async (file) => {
+        const [duration, sourceUrl] = await Promise.all([
+          getAudioDuration(file),
+          readFileAsDataUrl(file)
+        ])
+
+        return {
           id: crypto.randomUUID(),
           title: file.name,
           artist: "Desconocido",
-          duration: 0,
-          file: file
+          duration,
+          file,
+          sourceUrl
         }
-
-        songs.push(song)
-      }
-    })
+      })
+    )
 
     onSongsLoaded(songs)
+    event.currentTarget.value = ""
   }
 
   return (
@@ -37,7 +75,8 @@ const SongForm = ({ onSongsLoaded }: Props) => {
       <input
         type="file"
         multiple
-        //@ts-ignore
+        accept="audio/*"
+        // @ts-ignore
         webkitdirectory="true"
         onChange={handleFolderUpload}
       />

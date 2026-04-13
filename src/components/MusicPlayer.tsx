@@ -1,67 +1,72 @@
-import { usePlaylist } from "../hooks/usePlaylist"
-import { usePlayer } from "../hooks/usePlayer"
+import type { Playlist } from "../models/Playlist"
+import type { Song } from "../models/Song"
 
-import SongForm from "./SongForm"
-import SongList from "./SongList"
-import PlayerControls from "./PlayerControls"
+type Props = {
+  playlists: Playlist[]
+  selectedPlaylistName: string
+  onSelectPlaylist: (playlistName: string) => void
+  currentSong: Song | null
+  onAddToFavorites: (song: Song) => void
+}
 
-const MusicPlayer = () => {
-  const {
-    playlists,
-    addSongToPlaylist
-  } = usePlaylist()
+const formatDuration = (duration: number) => {
+  const minutes = Math.floor(duration / 60)
+  const seconds = Math.floor(duration % 60)
 
-  const {
-    currentSong,
-    setPlaylist,
-    play,
-    pause,
-    next,
-    prev
-  } = usePlayer()
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`
+}
 
-  // 🎵 Playlist activa (por ahora usamos la primera = Favoritos)
-  const currentPlaylist = playlists[0]
+const MusicPlayer = ({
+  playlists,
+  selectedPlaylistName,
+  onSelectPlaylist,
+  currentSong,
+  onAddToFavorites
+}: Props) => {
+  const selectedPlaylist = playlists.find((playlist) => playlist.name === selectedPlaylistName) ?? null
 
   return (
-    <div>
-      <h1>🎧 Music Player</h1>
+    <section className="rounded-xl border p-4">
+      <h2 className="text-xl font-semibold">Music Player</h2>
 
-      {/* 📂 Subir canciones */}
-      <SongForm
-        onSongsLoaded={(songs) => {
-          songs.forEach(song => {
-            addSongToPlaylist("Favoritos", song)
-          })
-        }}
-      />
+      <label className="mt-4 block">
+        Playlist activa
+        <select
+          className="mt-2 block w-full rounded-md border px-3 py-2"
+          value={selectedPlaylistName}
+          onChange={(event) => onSelectPlaylist(event.target.value)}
+        >
+          {playlists.map((playlist) => (
+            <option key={playlist.name} value={playlist.name}>
+              {playlist.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
-      {/* 🎵 Lista de canciones */}
-      <SongList
-        songs={currentPlaylist?.getSongs() || []}
-        onPlay={(song) => {
-          setPlaylist(currentPlaylist)
-          // ⚠️ aún no forzamos current exacto (lo mejoramos luego)
-          play()
-        }}
-      />
+      <div className="mt-4 rounded-lg bg-gray-900 p-4 text-white">
+        <p className="text-sm uppercase tracking-wide text-gray-300">Playlist seleccionada</p>
+        <p className="text-lg font-semibold">{selectedPlaylist?.name ?? "Sin playlist"}</p>
+        <p className="text-sm text-gray-300">
+          {selectedPlaylist?.getSongs().length ?? 0} canciones
+        </p>
+      </div>
 
-      {/* 🎮 Controles */}
-      <PlayerControls
-        onPlay={play}
-        onPause={pause}
-        onNext={next}
-        onPrev={prev}
-      />
-
-      {/* 🎶 Canción actual */}
       {currentSong && (
-        <div>
-          <h3>Reproduciendo:</h3>
-          <p>{currentSong.title}</p>
+        <div className="mt-4 rounded-lg border p-4">
+          <p className="text-sm uppercase tracking-wide text-gray-500">Reproduciendo ahora</p>
+          <p className="text-lg font-semibold">{currentSong.title}</p>
+          <p className="text-sm text-gray-600">{currentSong.artist}</p>
+          <p className="text-sm text-gray-600">{formatDuration(currentSong.duration)}</p>
+          <button
+            className="mt-3 rounded-md border px-3 py-2"
+            onClick={() => onAddToFavorites(currentSong)}
+          >
+            Añadir a favoritos
+          </button>
         </div>
       )}
-    </div>
+    </section>
   )
 }
 

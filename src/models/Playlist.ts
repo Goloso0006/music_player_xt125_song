@@ -12,6 +12,11 @@ export class Playlist {
 
   // ➕ agregar canción
   addSong(song: Song) {
+    const exists = this.songs.toArray().some((currentSong) => currentSong.id === song.id)
+    if (exists) {
+      return
+    }
+
     this.songs.add(song)
   }
 

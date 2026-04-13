@@ -1,13 +1,65 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Playlist } from "../models/Playlist"
 import type { Song } from "../models/Song"
 
-export const usePlaylist = () => {
-  const [playlists, setPlaylists] = useState<Playlist[]>([
-    new Playlist("Favoritos") // ❤️ por defecto
-  ])
+type StoredSong = Omit<Song, "file">
 
-  const MAX_PLAYLISTS = 5
+type StoredPlaylist = {
+  name: string
+  songs: StoredSong[]
+}
+
+const STORAGE_KEY = "playlists"
+const FAVORITES_PLAYLIST = "Favoritos"
+const MAX_PLAYLISTS = 5
+
+const createDefaultPlaylists = () => [new Playlist(FAVORITES_PLAYLIST)]
+
+const hydratePlaylists = (storedPlaylists: StoredPlaylist[]) => {
+  const playlists = storedPlaylists.map((storedPlaylist) => {
+    const playlist = new Playlist(storedPlaylist.name)
+
+    storedPlaylist.songs.forEach((song) => {
+      playlist.addSong(song as Song)
+    })
+
+    return playlist
+  })
+
+  return playlists.length > 0 ? playlists : createDefaultPlaylists()
+}
+
+const serializePlaylists = (playlists: Playlist[]): StoredPlaylist[] => {
+  return playlists.map((playlist) => ({
+    name: playlist.name,
+    songs: playlist.getSongs().map((song) => {
+      const { file, ...rest } = song
+      return rest
+    })
+  }))
+}
+
+export const usePlaylist = () => {
+  const [playlists, setPlaylists] = useState<Playlist[]>(() => {
+    if (typeof window === "undefined") {
+      return createDefaultPlaylists()
+    }
+
+    try {
+      const savedPlaylists = localStorage.getItem(STORAGE_KEY)
+      if (!savedPlaylists) {
+        return createDefaultPlaylists()
+      }
+
+      return hydratePlaylists(JSON.parse(savedPlaylists) as StoredPlaylist[])
+    } catch {
+      return createDefaultPlaylists()
+    }
+  })
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializePlaylists(playlists)))
+  }, [playlists])
 
   // ➕ Crear playlist
   const createPlaylist = (name: string) => {
@@ -16,39 +68,53 @@ export const usePlaylist = () => {
       return
     }
 
-    const newPlaylist = new Playlist(name)
-    setPlaylists([...playlists, newPlaylist])
+    const exists = playlists.some((playlist) => playlist.name === name)
+    if (exists) {
+      return
+    }
+
+    setPlaylists((currentPlaylists) => [...currentPlaylists, new Playlist(name)])
   }
 
   // ❌ Eliminar playlist
   const deletePlaylist = (name: string) => {
-    if (name === "Favoritos") return // no se puede borrar
+    if (name === FAVORITES_PLAYLIST) return // no se puede borrar
 
-    setPlaylists(playlists.filter(p => p.name !== name))
+    setPlaylists((currentPlaylists) => currentPlaylists.filter((playlist) => playlist.name !== name))
   }
 
   // ➕ Agregar canción a playlist
   const addSongToPlaylist = (playlistName: string, song: Song) => {
-    const updated = playlists.map(p => {
-      if (p.name === playlistName) {
-        p.addSong(song)
-      }
-      return p
-    })
+    setPlaylists((currentPlaylists) => {
+      const updatedPlaylists = currentPlaylists.map((playlist) => {
+        if (playlist.name === playlistName) {
+          playlist.addSong(song)
+        }
 
-    setPlaylists([...updated])
+        return playlist
+      })
+
+      return [...updatedPlaylists]
+    })
+  }
+
+  const addToFavorites = (song: Song) => {
+    addSongToPlaylist(FAVORITES_PLAYLIST, song)
   }
 
   // ❌ Eliminar canción
   const removeSongFromPlaylist = (playlistName: string, songId: string) => {
-    const updated = playlists.map(p => {
-      if (p.name === playlistName) {
-        p.removeSong(songId)
-      }
-      return p
-    })
+    setPlaylists((currentPlaylists) => {
+      const updatedPlaylists = currentPlaylists.map((playlist) => {
+        if (playlist.name === playlistName) {
+          playlist.removeSong(songId)
+        }
 
-    setPlaylists([...updated])
+        return playlist
+      })
+
+      return [...updatedPlaylists]
+    })
   }
 
   return {
@@ -56,6 +122,7 @@ export const usePlaylist = () => {
     createPlaylist,
     deletePlaylist,
     addSongToPlaylist,
+    addToFavorites,
     removeSongFromPlaylist
   }
 }
