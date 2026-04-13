@@ -9,6 +9,11 @@ type StoredPlaylist = {
   songs: StoredSong[]
 }
 
+type StoredState = {
+  librarySongs: StoredSong[]
+  playlists: StoredPlaylist[]
+}
+
 const STORAGE_KEY = "playlists"
 const FAVORITES_PLAYLIST = "Favoritos"
 const MAX_PLAYLISTS = 5
@@ -29,17 +34,25 @@ const hydratePlaylists = (storedPlaylists: StoredPlaylist[]) => {
   return playlists.length > 0 ? playlists : createDefaultPlaylists()
 }
 
+const hydrateLibrarySongs = (storedSongs: StoredSong[]) => {
+  return storedSongs.map((song) => song as Song)
+}
+
+const serializeSongs = (songs: Song[]): StoredSong[] => {
+  return songs.map((song) => {
+    const { file, ...rest } = song
+    return rest
+  })
+}
+
 const serializePlaylists = (playlists: Playlist[]): StoredPlaylist[] => {
   return playlists.map((playlist) => ({
     name: playlist.name,
-    songs: playlist.getSongs().map((song) => {
-      const { file, ...rest } = song
-      return rest
-    })
+    songs: serializeSongs(playlist.getSongs())
   }))
 }
 
-const readStoredPlaylists = (): StoredPlaylist[] | null => {
+const readStoredState = (): StoredState | null => {
   if (typeof window === "undefined") {
     return null
   }
@@ -52,39 +65,79 @@ const readStoredPlaylists = (): StoredPlaylist[] | null => {
     }
 
     const parsedPlaylists = JSON.parse(rawPlaylists)
-    return Array.isArray(parsedPlaylists) ? (parsedPlaylists as StoredPlaylist[]) : null
+
+      if (Array.isArray(parsedPlaylists)) {
+        return {
+          librarySongs: [],
+          playlists: parsedPlaylists as StoredPlaylist[]
+        }
+      }
+
+      if (parsedPlaylists && typeof parsedPlaylists === "object") {
+        const storedState = parsedPlaylists as Partial<StoredState>
+
+        return {
+          librarySongs: Array.isArray(storedState.librarySongs) ? storedState.librarySongs : [],
+          playlists: Array.isArray(storedState.playlists) ? storedState.playlists : []
+        }
+      }
+
+      return null
   } catch (error) {
     console.error("No se pudieron leer playlists de localStorage", error)
     return null
   }
 }
 
-const savePlaylists = (playlists: Playlist[]) => {
+  const saveState = (librarySongs: Song[], playlists: Playlist[]) => {
   if (typeof window === "undefined") {
     return
   }
 
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializePlaylists(playlists)))
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          librarySongs: serializeSongs(librarySongs),
+          playlists: serializePlaylists(playlists)
+        })
+      )
   } catch (error) {
     console.error("No se pudieron guardar playlists en localStorage", error)
   }
 }
 
 export const usePlaylist = () => {
-  const [playlists, setPlaylists] = useState<Playlist[]>(() => {
-    const storedPlaylists = readStoredPlaylists()
+    const storedState = readStoredState()
 
-    if (!storedPlaylists) {
-      return createDefaultPlaylists()
-    }
+    const [librarySongs, setLibrarySongs] = useState<Song[]>(() => {
+      if (!storedState) {
+        return []
+      }
 
-    return hydratePlaylists(storedPlaylists)
+      return hydrateLibrarySongs(storedState.librarySongs)
+    })
+
+    const [playlists, setPlaylists] = useState<Playlist[]>(() => {
+      if (!storedState) {
+        return createDefaultPlaylists()
+      }
+
+      return hydratePlaylists(storedState.playlists)
   })
 
   useEffect(() => {
-    savePlaylists(playlists)
-  }, [playlists])
+      saveState(librarySongs, playlists)
+    }, [librarySongs, playlists])
+
+    const addSongsToLibrary = (songs: Song[]) => {
+      setLibrarySongs((currentSongs) => {
+        const existingIds = new Set(currentSongs.map((song) => song.id))
+        const newSongs = songs.filter((song) => !existingIds.has(song.id))
+
+        return [...currentSongs, ...newSongs]
+      })
+    }
 
   // ➕ Crear playlist
   const createPlaylist = (name: string) => {
@@ -117,15 +170,19 @@ export const usePlaylist = () => {
   // ➕ Agregar canción a playlist
   const addSongToPlaylist = (playlistName: string, song: Song) => {
     setPlaylists((currentPlaylists) => {
-      const updatedPlaylists = currentPlaylists.map((playlist) => {
-        if (playlist.name === playlistName) {
-          playlist.addSong(song)
+      return currentPlaylists.map((playlist) => {
+        if (playlist.name !== playlistName) {
+          return playlist
         }
 
-        return playlist
-      })
+        const updatedPlaylist = new Playlist(playlist.name)
+        playlist.getSongs().forEach((currentSong) => {
+          updatedPlaylist.addSong(currentSong)
+        })
+        updatedPlaylist.addSong(song)
 
-      return [...updatedPlaylists]
+        return updatedPlaylist
+      })
     })
   }
 
@@ -136,20 +193,27 @@ export const usePlaylist = () => {
   // ❌ Eliminar canción
   const removeSongFromPlaylist = (playlistName: string, songId: string) => {
     setPlaylists((currentPlaylists) => {
-      const updatedPlaylists = currentPlaylists.map((playlist) => {
-        if (playlist.name === playlistName) {
-          playlist.removeSong(songId)
+      return currentPlaylists.map((playlist) => {
+        if (playlist.name !== playlistName) {
+          return playlist
         }
 
-        return playlist
-      })
+        const updatedPlaylist = new Playlist(playlist.name)
+        playlist.getSongs()
+          .filter((song) => song.id !== songId)
+          .forEach((song) => {
+            updatedPlaylist.addSong(song)
+          })
 
-      return [...updatedPlaylists]
+        return updatedPlaylist
+      })
     })
   }
 
   return {
+    librarySongs,
     playlists,
+    addSongsToLibrary,
     createPlaylist,
     deletePlaylist,
     addSongToPlaylist,

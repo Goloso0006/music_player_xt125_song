@@ -1,10 +1,14 @@
 import type { Song } from "../models/Song"
 
 type Props = {
+  title: string
   songs: Song[]
   currentSong: Song | null
-  onPlay: (song: Song) => void
+  onPlay?: (song: Song) => void
   onRemove?: (songId: string) => void
+  onAddToPlaylist?: (song: Song) => void
+  addButtonLabel?: string
+  emptyMessage?: string
 }
 
 const formatDuration = (duration: number) => {
@@ -14,12 +18,21 @@ const formatDuration = (duration: number) => {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`
 }
 
-const SongList = ({ songs, currentSong, onPlay, onRemove }: Props) => {
+const SongList = ({
+  title,
+  songs,
+  currentSong,
+  onPlay,
+  onRemove,
+  onAddToPlaylist,
+  addButtonLabel = "Agregar",
+  emptyMessage = "No hay canciones"
+}: Props) => {
   return (
     <div>
-      <h2>Lista de canciones</h2>
+      <h2>{title}</h2>
 
-      {songs.length === 0 && <p>No hay canciones</p>}
+      {songs.length === 0 && <p>{emptyMessage}</p>}
 
       <ul>
         {songs.map((song) => (
@@ -32,8 +45,17 @@ const SongList = ({ songs, currentSong, onPlay, onRemove }: Props) => {
             <span>
               {song.title} - {song.artist} - {formatDuration(song.duration)}
             </span>
-            <button onClick={() => onPlay(song)}>▶️</button>
-            {onRemove && <button onClick={() => onRemove(song.id)}>🗑️</button>}
+            {onPlay && <button onClick={() => onPlay(song)}>▶️</button>}
+            {onAddToPlaylist && (
+              <button type="button" onClick={() => onAddToPlaylist(song)}>
+                {addButtonLabel}
+              </button>
+            )}
+            {onRemove && (
+              <button type="button" onClick={() => onRemove(song.id)}>
+                🗑️
+              </button>
+            )}
           </li>
         ))}
       </ul>

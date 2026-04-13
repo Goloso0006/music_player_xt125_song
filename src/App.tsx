@@ -4,15 +4,20 @@ import MusicPlayer from './components/MusicPlayer'
 import PlayerControls from './components/PlayerControls'
 import SongForm from './components/SongForm'
 import SongList from './components/SongList'
+import { Playlist } from './models/Playlist'
 import { usePlaylist } from './hooks/usePlaylist'
 import { usePlayer } from './hooks/usePlayer'
 import type { Song } from './models/Song'
 
 function App() {
   const {
+    librarySongs,
     playlists,
+    addSongsToLibrary,
     addSongToPlaylist,
     removeSongFromPlaylist,
+    createPlaylist,
+    deletePlaylist,
     addToFavorites
   } = usePlaylist()
 
@@ -49,17 +54,24 @@ function App() {
   }, [selectedPlaylist, setPlaylist])
 
   const handleSongsLoaded = (songs: Song[]) => {
-    if (!selectedPlaylist) return
-
-    songs.forEach((song) => {
-      addSongToPlaylist(selectedPlaylist.name, song)
-    })
+    addSongsToLibrary(songs)
   }
 
   const handlePlaySong = (song: Song) => {
     if (!selectedPlaylist) return
 
     playSong(selectedPlaylist, song)
+  }
+
+  const handlePlayLibrarySong = (song: Song) => {
+    if (librarySongs.length === 0) return
+
+    const libraryPlaylist = new Playlist("Biblioteca global")
+    librarySongs.forEach((librarySong) => {
+      libraryPlaylist.addSong(librarySong)
+    })
+
+    playSong(libraryPlaylist, song)
   }
 
   const handleRemoveSong = (songId: string) => {
@@ -76,6 +88,8 @@ function App() {
         playlists={playlists}
         selectedPlaylistName={selectedPlaylist?.name ?? "Favoritos"}
         onSelectPlaylist={setSelectedPlaylistName}
+        onCreatePlaylist={createPlaylist}
+        onDeletePlaylist={deletePlaylist}
         currentSong={currentSong}
         onAddToFavorites={addToFavorites}
       />
@@ -83,14 +97,29 @@ function App() {
       <section className="grid gap-4 rounded-xl border p-4 md:grid-cols-2">
         <SongForm onSongsLoaded={handleSongsLoaded} />
         <SongList
-          songs={selectedPlaylist?.getSongs() ?? []}
-          currentSong={currentSong}
-          onPlay={handlePlaySong}
-          onRemove={handleRemoveSong}
+          title="Biblioteca global"
+          songs={librarySongs}
+          currentSong={null}
+          onPlay={handlePlayLibrarySong}
+          onAddToPlaylist={(song) => {
+            if (!selectedPlaylist) return
+
+            addSongToPlaylist(selectedPlaylist.name, song)
+          }}
+          addButtonLabel={`Agregar a ${selectedPlaylist?.name ?? "playlist"}`}
+          emptyMessage="Todavía no hay canciones cargadas"
         />
       </section>
 
       <section className="grid gap-4 rounded-xl border p-4 md:grid-cols-2">
+        <SongList
+          title={`Canciones de ${selectedPlaylist?.name ?? "playlist"}`}
+          songs={selectedPlaylist?.getSongs() ?? []}
+          currentSong={currentSong}
+          onPlay={handlePlaySong}
+          onRemove={handleRemoveSong}
+          emptyMessage="Esta playlist no tiene canciones"
+        />
         <PlayerControls
           onPlay={play}
           onPause={pause}

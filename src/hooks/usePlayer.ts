@@ -78,16 +78,21 @@ export const usePlayer = () => {
     const song = playlist.current() || playlist.songs.head?.data || null
 
     if (song) {
+      syncCurrentSong(playlist, song)
       setCurrentSong(song)
     }
-  }, [])
+  }, [syncCurrentSong])
 
   // ▶️ Reproducir
   const play = useCallback(() => {
-    if (!currentSong) return
+    const songToPlay = currentSong || currentPlaylist?.current() || currentPlaylist?.songs.head?.data || null
 
-    void playCurrentSong(currentSong)
-  }, [currentSong, playCurrentSong])
+    if (!songToPlay || !currentPlaylist) return
+
+    syncCurrentSong(currentPlaylist, songToPlay)
+    setCurrentSong(songToPlay)
+    void playCurrentSong(songToPlay)
+  }, [currentPlaylist, currentSong, playCurrentSong, syncCurrentSong])
 
   // ⏸️ Pausar
   const pause = useCallback(() => {

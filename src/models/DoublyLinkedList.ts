@@ -55,17 +55,23 @@ export class DoublyLinkedList {
 
   // ▶️ Siguiente canción
   next() {
-    if (this.current?.next) {
-      this.current = this.current.next
+    if (!this.current) {
+      this.current = this.head
+    } else {
+      this.current = this.current.next ?? this.head
     }
+
     return this.current?.data || null
   }
 
   // ⏮️ Canción anterior
   prev() {
-    if (this.current?.prev) {
-      this.current = this.current.prev
+    if (!this.current) {
+      this.current = this.tail
+    } else {
+      this.current = this.current.prev ?? this.tail
     }
+
     return this.current?.data || null
   }
 
