@@ -39,41 +39,72 @@ const serializePlaylists = (playlists: Playlist[]): StoredPlaylist[] => {
   }))
 }
 
+const readStoredPlaylists = (): StoredPlaylist[] | null => {
+  if (typeof window === "undefined") {
+    return null
+  }
+
+  try {
+    const rawPlaylists = localStorage.getItem(STORAGE_KEY)
+
+    if (!rawPlaylists) {
+      return null
+    }
+
+    const parsedPlaylists = JSON.parse(rawPlaylists)
+    return Array.isArray(parsedPlaylists) ? (parsedPlaylists as StoredPlaylist[]) : null
+  } catch (error) {
+    console.error("No se pudieron leer playlists de localStorage", error)
+    return null
+  }
+}
+
+const savePlaylists = (playlists: Playlist[]) => {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializePlaylists(playlists)))
+  } catch (error) {
+    console.error("No se pudieron guardar playlists en localStorage", error)
+  }
+}
+
 export const usePlaylist = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>(() => {
-    if (typeof window === "undefined") {
+    const storedPlaylists = readStoredPlaylists()
+
+    if (!storedPlaylists) {
       return createDefaultPlaylists()
     }
 
-    try {
-      const savedPlaylists = localStorage.getItem(STORAGE_KEY)
-      if (!savedPlaylists) {
-        return createDefaultPlaylists()
-      }
-
-      return hydratePlaylists(JSON.parse(savedPlaylists) as StoredPlaylist[])
-    } catch {
-      return createDefaultPlaylists()
-    }
+    return hydratePlaylists(storedPlaylists)
   })
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializePlaylists(playlists)))
+    savePlaylists(playlists)
   }, [playlists])
 
   // ➕ Crear playlist
   const createPlaylist = (name: string) => {
+    const sanitizedName = name.trim()
+
+    if (!sanitizedName) {
+      return
+    }
+
     if (playlists.length >= MAX_PLAYLISTS) {
       alert("Máximo 5 playlists")
       return
     }
 
-    const exists = playlists.some((playlist) => playlist.name === name)
+    const exists = playlists.some((playlist) => playlist.name === sanitizedName)
     if (exists) {
       return
     }
 
-    setPlaylists((currentPlaylists) => [...currentPlaylists, new Playlist(name)])
+    setPlaylists((currentPlaylists) => [...currentPlaylists, new Playlist(sanitizedName)])
   }
 
   // ❌ Eliminar playlist

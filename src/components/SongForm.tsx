@@ -6,7 +6,7 @@ type Props = {
 }
 
 const readFileAsDataUrl = (file: File) => {
-  return new Promise<string>((resolve) => {
+  return new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
 
     reader.onload = () => {
@@ -14,10 +14,14 @@ const readFileAsDataUrl = (file: File) => {
     }
 
     reader.onerror = () => {
-      resolve("")
+      reject(new Error(`No se pudo leer el archivo: ${file.name}`))
     }
 
-    reader.readAsDataURL(file)
+    try {
+      reader.readAsDataURL(file)
+    } catch (error) {
+      reject(error)
+    }
   })
 }
 
@@ -41,31 +45,64 @@ const getAudioDuration = (file: File) => {
 
 const SongForm = ({ onSongsLoaded }: Props) => {
   const handleFolderUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = event.currentTarget.files
-    if (!files) return
+    const input = event.currentTarget
+    const files = input.files
+
+    if (!files || files.length === 0) {
+      return
+    }
 
     const audioFiles = Array.from(files).filter((file) => file.type.startsWith("audio/"))
+    if (audioFiles.length === 0) {
+      alert("No se encontraron archivos de audio válidos")
+      input.value = ""
+      return
+    }
 
-    const songs = await Promise.all(
-      audioFiles.map(async (file) => {
-        const [duration, sourceUrl] = await Promise.all([
-          getAudioDuration(file),
-          readFileAsDataUrl(file)
-        ])
+    try {
+      const loadedSongs = await Promise.all(
+        audioFiles.map(async (file): Promise<Song | null> => {
+          try {
+            const [duration, sourceUrl] = await Promise.all([
+              getAudioDuration(file),
+              readFileAsDataUrl(file)
+            ])
 
-        return {
-          id: crypto.randomUUID(),
-          title: file.name,
-          artist: "Desconocido",
-          duration,
-          file,
-          sourceUrl
-        }
-      })
-    )
+            if (!sourceUrl) {
+              throw new Error(`La canción no tiene contenido reproducible: ${file.name}`)
+            }
 
-    onSongsLoaded(songs)
-    event.currentTarget.value = ""
+            const song: Song = {
+              id: crypto.randomUUID(),
+              title: file.name,
+              artist: "Desconocido",
+              duration,
+              file,
+              sourceUrl
+            }
+
+            return song
+          } catch (error) {
+            console.error(`Error cargando ${file.name}`, error)
+            return null
+          }
+        })
+      )
+
+      const songs = loadedSongs.filter((song): song is Song => song !== null)
+
+      if (songs.length === 0) {
+        alert("No se pudieron cargar canciones")
+        return
+      }
+
+      onSongsLoaded(songs)
+    } catch (error) {
+      console.error("Error inesperado al cargar canciones", error)
+      alert("Ocurrió un error al procesar los archivos")
+    } finally {
+      input.value = ""
+    }
   }
 
   return (
