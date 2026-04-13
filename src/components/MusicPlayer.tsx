@@ -44,51 +44,87 @@ const MusicPlayer = ({
   }
 
   return (
-    <section className="rounded-xl border p-4">
-      <h2 className="text-xl font-semibold">Music Player</h2>
+    <>
+      <section className="panel player-main">
+        <div className="now-playing">
+          <div className="album-art">♫</div>
+          <h2 className="song-title">{currentSong?.title ?? "No hay canción"}</h2>
+          <p className="song-artist">{currentSong?.artist ?? "Sube una carpeta de canciones"}</p>
+          <div className="visualizer" aria-hidden="true">
+            {Array.from({ length: 7 }).map((_, index) => (
+              <span key={index} className="bar" />
+            ))}
+          </div>
+          <div className="progress-container" aria-hidden="true">
+            <div className="time-display">
+              <span>0:00</span>
+              <span>{formatDuration(currentSong?.duration ?? 0)}</span>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-fill" />
+            </div>
+          </div>
+          {currentSong && (
+            <button
+              className="btn btn-favorite"
+              type="button"
+              onClick={() => onAddToFavorites(currentSong)}
+            >
+              Añadir a favoritos
+            </button>
+          )}
+        </div>
+      </section>
 
-      <div className="mt-4 rounded-lg border p-4">
-        <p className="text-sm uppercase tracking-wide text-gray-500">Gestionar playlists</p>
-        <div className="mt-2 flex gap-2">
+      <section className="panel playlist-section">
+        <h2 className="section-title">Mis Playlists</h2>
+
+        <div className="playlist-input-group">
           <input
-            className="min-w-0 flex-1 rounded-md border px-3 py-2"
+            className="playlist-input"
             type="text"
             value={playlistName}
-            placeholder="Nueva playlist"
+            placeholder="Nombre de la playlist..."
             onChange={(event) => setPlaylistName(event.target.value)}
           />
-          <button className="rounded-md border px-3 py-2" onClick={handleCreatePlaylist}>
+          <button className="btn" type="button" onClick={handleCreatePlaylist}>
             Crear
           </button>
         </div>
 
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700">
-            Playlist activa
-            <select
-              className="mt-2 block w-full rounded-md border px-3 py-2"
-              value={selectedPlaylistName}
-              onChange={(event) => onSelectPlaylist(event.target.value)}
-            >
-              {playlists.map((playlist) => (
-                <option key={playlist.name} value={playlist.name}>
-                  {playlist.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <ul className="mt-4 space-y-2">
+        <label className="playlist-label" htmlFor="playlist-select">
+          Playlist activa
+        </label>
+        <select
+          id="playlist-select"
+          className="playlist-select"
+          value={selectedPlaylistName}
+          onChange={(event) => onSelectPlaylist(event.target.value)}
+        >
           {playlists.map((playlist) => (
-            <li key={playlist.name} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
-              <button className="text-left" onClick={() => onSelectPlaylist(playlist.name)}>
+            <option key={playlist.name} value={playlist.name}>
+              {playlist.name}
+            </option>
+          ))}
+        </select>
+
+        <ul className="playlist-list">
+          {playlists.map((playlist) => (
+            <li
+              key={playlist.name}
+              className={`playlist-item ${playlist.name === selectedPlaylistName ? "active" : ""}`}
+            >
+              <button className="playlist-name" type="button" onClick={() => onSelectPlaylist(playlist.name)}>
                 {playlist.name}
               </button>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{playlist.getSongs().length} canciones</span>
+              <div className="playlist-meta">
+                <span>{playlist.getSongs().length} canciones</span>
                 {playlist.name !== "Favoritos" && (
-                  <button className="rounded-md border px-2 py-1 text-sm" onClick={() => onDeletePlaylist(playlist.name)}>
+                  <button
+                    className="delete-btn"
+                    type="button"
+                    onClick={() => onDeletePlaylist(playlist.name)}
+                  >
                     Eliminar
                   </button>
                 )}
@@ -96,31 +132,16 @@ const MusicPlayer = ({
             </li>
           ))}
         </ul>
-      </div>
 
-      <div className="mt-4 rounded-lg bg-gray-900 p-4 text-white">
-        <p className="text-sm uppercase tracking-wide text-gray-300">Playlist seleccionada</p>
-        <p className="text-lg font-semibold">{selectedPlaylist?.name ?? "Sin playlist"}</p>
-        <p className="text-sm text-gray-300">
-          {selectedPlaylist?.getSongs().length ?? 0} canciones
-        </p>
-      </div>
+        {!playlists.length && <p className="empty-state">No hay playlists aún</p>}
 
-      {currentSong && (
-        <div className="mt-4 rounded-lg border p-4">
-          <p className="text-sm uppercase tracking-wide text-gray-500">Reproduciendo ahora</p>
-          <p className="text-lg font-semibold">{currentSong.title}</p>
-          <p className="text-sm text-gray-600">{currentSong.artist}</p>
-          <p className="text-sm text-gray-600">{formatDuration(currentSong.duration)}</p>
-          <button
-            className="mt-3 rounded-md border px-3 py-2"
-            onClick={() => onAddToFavorites(currentSong)}
-          >
-            Añadir a favoritos
-          </button>
+        <div className="playlist-selected">
+          <p className="playlist-selected-label">Seleccionada</p>
+          <p className="playlist-selected-name">{selectedPlaylist?.name ?? "Sin playlist"}</p>
+          <p className="playlist-selected-count">{selectedPlaylist?.getSongs().length ?? 0} canciones</p>
         </div>
-      )}
-    </section>
+      </section>
+    </>
   )
 }
 

@@ -106,10 +106,15 @@ const SongForm = ({ onSongsLoaded }: Props) => {
   }
 
   return (
-    <div>
-      <h2>Cargar carpeta de canciones</h2>
+    <div className="upload-block">
+      <p className="upload-label">Carga una carpeta de canciones</p>
 
+      <label className="btn file-upload-btn" htmlFor="folder-upload">
+        📁 Cargar Canciones
+      </label>
       <input
+        id="folder-upload"
+        className="file-input-hidden"
         type="file"
         multiple
         accept="audio/*"

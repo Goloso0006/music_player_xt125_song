@@ -81,8 +81,10 @@ function App() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-4 py-8">
-      <h1 className="text-2xl font-semibold">XT125</h1>
+    <main className="app-shell">
+      <header className="app-header">
+        <h1 className="app-logo">XT125</h1>
+      </header>
 
       <MusicPlayer
         playlists={playlists}
@@ -94,7 +96,8 @@ function App() {
         onAddToFavorites={addToFavorites}
       />
 
-      <section className="grid gap-4 rounded-xl border p-4 md:grid-cols-2">
+      <section className="panel panel-songs">
+        <h2 className="section-title">Canciones</h2>
         <SongForm onSongsLoaded={handleSongsLoaded} />
         <SongList
           title="Biblioteca global"
@@ -111,7 +114,7 @@ function App() {
         />
       </section>
 
-      <section className="grid gap-4 rounded-xl border p-4 md:grid-cols-2">
+      <section className="panel panel-playlist-tracks">
         <SongList
           title={`Canciones de ${selectedPlaylist?.name ?? "playlist"}`}
           songs={selectedPlaylist?.getSongs() ?? []}

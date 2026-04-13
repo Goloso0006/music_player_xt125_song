@@ -29,33 +29,34 @@ const SongList = ({
   emptyMessage = "No hay canciones"
 }: Props) => {
   return (
-    <div>
-      <h2>{title}</h2>
+    <div className="song-list-block">
+      <h3 className="section-title">{title}</h3>
 
-      {songs.length === 0 && <p>{emptyMessage}</p>}
+      {songs.length === 0 && <p className="empty-state">{emptyMessage}</p>}
 
-      <ul>
+      <ul className="song-list">
         {songs.map((song) => (
           <li
             key={song.id}
-            style={{
-              fontWeight: currentSong?.id === song.id ? "bold" : "normal"
-            }}
+            className={`song-item ${currentSong?.id === song.id ? "active" : ""}`}
           >
-            <span>
-              {song.title} - {song.artist} - {formatDuration(song.duration)}
-            </span>
-            {onPlay && <button onClick={() => onPlay(song)}>▶️</button>}
-            {onAddToPlaylist && (
-              <button type="button" onClick={() => onAddToPlaylist(song)}>
+            <div className="song-info">
+              <p className="song-name">{song.title}</p>
+              <p className="song-duration">{song.artist} · {formatDuration(song.duration)}</p>
+            </div>
+            <div className="song-actions">
+              {onPlay && <button className="btn btn-secondary" type="button" onClick={() => onPlay(song)}>▶ Reproducir</button>}
+              {onAddToPlaylist && (
+                <button className="btn btn-secondary" type="button" onClick={() => onAddToPlaylist(song)}>
                 {addButtonLabel}
-              </button>
-            )}
-            {onRemove && (
-              <button type="button" onClick={() => onRemove(song.id)}>
-                🗑️
-              </button>
-            )}
+                </button>
+              )}
+              {onRemove && (
+                <button className="delete-btn" type="button" onClick={() => onRemove(song.id)}>
+                  Eliminar
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>
