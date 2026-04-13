@@ -1,11 +1,11 @@
-export class Node<T> {
-  value: T;
-  next: Node<T> | null;
-  prev: Node<T> | null;
+import type { Song } from "./Song"
 
-  constructor(value: T) {
-    this.value = value;
-    this.next = null;
-    this.prev = null;
+export class Node {
+  data: Song
+  next: Node | null = null
+  prev: Node | null = null
+
+  constructor(data: Song) {
+    this.data = data
   }
 }
