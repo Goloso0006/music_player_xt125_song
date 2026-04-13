@@ -1,30 +1,61 @@
-import { useState } from "react";
-import type { Song } from "../models/Song";
+import { useState, useRef } from "react"
+import { Playlist } from "../models/Playlist"
 
-export function usePlayer() {
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [currentIndex, setCurrentIndex] = useState<number>(-1);
+export const usePlayer = () => {
+  const [currentPlaylist, setCurrentPlaylist] = useState<Playlist | null>(null)
+  const [currentSong, setCurrentSong] = useState<any>(null)
+  const audioRef = useRef(new Audio())
 
-  const addSong = (song: Song) => {
-    setSongs((prev) => [...prev, song]);
-    if (currentIndex === -1) {
-      setCurrentIndex(0);
+  // ▶️ Seleccionar playlist
+  const setPlaylist = (playlist: Playlist) => {
+    setCurrentPlaylist(playlist)
+    const song = playlist.current()
+    setCurrentSong(song)
+  }
+
+  // ▶️ Reproducir
+  const play = () => {
+    if (!currentSong) return
+
+    audioRef.current.src = URL.createObjectURL(currentSong.file)
+    audioRef.current.play()
+  }
+
+  // ⏸️ Pausar
+  const pause = () => {
+    audioRef.current.pause()
+  }
+
+  // ⏭️ Siguiente
+  const next = () => {
+    if (!currentPlaylist) return
+
+    const nextSong = currentPlaylist.next()
+    if (nextSong) {
+      setCurrentSong(nextSong)
+      audioRef.current.src = URL.createObjectURL(nextSong.file)
+      audioRef.current.play()
     }
-  };
+  }
 
-  const nextSong = () => {
-    setCurrentIndex((prev) => (prev + 1 < songs.length ? prev + 1 : prev));
-  };
+  // ⏮️ Anterior
+  const prev = () => {
+    if (!currentPlaylist) return
 
-  const prevSong = () => {
-    setCurrentIndex((prev) => (prev - 1 >= 0 ? prev - 1 : prev));
-  };
+    const prevSong = currentPlaylist.prev()
+    if (prevSong) {
+      setCurrentSong(prevSong)
+      audioRef.current.src = URL.createObjectURL(prevSong.file)
+      audioRef.current.play()
+    }
+  }
 
   return {
-    songs,
-    currentSong: currentIndex >= 0 ? songs[currentIndex] : null,
-    addSong,
-    nextSong,
-    prevSong,
-  };
+    currentSong,
+    setPlaylist,
+    play,
+    pause,
+    next,
+    prev
+  }
 }
