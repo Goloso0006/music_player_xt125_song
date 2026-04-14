@@ -1,7 +1,7 @@
 import type { ChangeEvent } from "react"
 import type { Song } from "../models/Song"
 import { useNotification } from "../hooks/useNotification"
-import { getRandomCover } from "../utils/coverSelector"
+import { getRandomCover } from "../utils/coverSelector.ts"
 
 type Props = {
   onSongsLoaded: (songs: Song[]) => void
