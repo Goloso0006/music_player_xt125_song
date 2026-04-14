@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import './App.css'
 import MusicPlayer from './components/MusicPlayer'
-import PlayerControls from './components/PlayerControls'
+import NotificationCenter from './components/NotificationCenter'
 import SongForm from './components/SongForm'
 import SongList from './components/SongList'
 import { Playlist } from './models/Playlist'
@@ -82,6 +82,7 @@ function App() {
 
   return (
     <main className="app-shell">
+      <NotificationCenter />
       <header className="app-header">
         <h1 className="app-logo">XT125</h1>
       </header>
@@ -94,6 +95,11 @@ function App() {
         onDeletePlaylist={deletePlaylist}
         currentSong={currentSong}
         onAddToFavorites={addToFavorites}
+        onPlay={play}
+        onPause={pause}
+        onNext={next}
+        onPrev={prev}
+        onVolumeChange={setVolume}
       />
 
       <section className="panel panel-songs">
@@ -122,13 +128,6 @@ function App() {
           onPlay={handlePlaySong}
           onRemove={handleRemoveSong}
           emptyMessage="Esta playlist no tiene canciones"
-        />
-        <PlayerControls
-          onPlay={play}
-          onPause={pause}
-          onNext={next}
-          onPrev={prev}
-          onVolumeChange={setVolume}
         />
       </section>
     </main>

@@ -1,6 +1,8 @@
 import { useState } from "react"
 import type { Playlist } from "../models/Playlist"
 import type { Song } from "../models/Song"
+import PlayerControls from "./PlayerControls"
+import defaultCover from "../assets/default-cover.svg"
 
 type Props = {
   playlists: Playlist[]
@@ -10,6 +12,11 @@ type Props = {
   onDeletePlaylist: (playlistName: string) => void
   currentSong: Song | null
   onAddToFavorites: (song: Song) => void
+  onPlay: () => void
+  onPause: () => void
+  onNext: () => void
+  onPrev: () => void
+  onVolumeChange: (value: number) => void
 }
 
 const formatDuration = (duration: number) => {
@@ -26,7 +33,12 @@ const MusicPlayer = ({
   onCreatePlaylist,
   onDeletePlaylist,
   currentSong,
-  onAddToFavorites
+  onAddToFavorites,
+  onPlay,
+  onPause,
+  onNext,
+  onPrev,
+  onVolumeChange
 }: Props) => {
   const [playlistName, setPlaylistName] = useState("")
   const selectedPlaylist = playlists.find((playlist) => playlist.name === selectedPlaylistName) ?? null
@@ -47,7 +59,14 @@ const MusicPlayer = ({
     <>
       <section className="panel player-main">
         <div className="now-playing">
-          <div className="album-art">♫</div>
+          <div className="album-art">
+            <img
+              className="album-art-image"
+              src={currentSong ? currentSong.coverUrl : defaultCover}
+              alt={currentSong ? `Portada de ${currentSong.title}` : "Portada por defecto"}
+            />
+            <div className="album-art-overlay" aria-hidden="true" />
+          </div>
           <h2 className="song-title">{currentSong?.title ?? "No hay canción"}</h2>
           <p className="song-artist">{currentSong?.artist ?? "Sube una carpeta de canciones"}</p>
           <div className="visualizer" aria-hidden="true">
@@ -73,6 +92,14 @@ const MusicPlayer = ({
               Añadir a favoritos
             </button>
           )}
+
+          <PlayerControls
+            onPlay={onPlay}
+            onPause={onPause}
+            onNext={onNext}
+            onPrev={onPrev}
+            onVolumeChange={onVolumeChange}
+          />
         </div>
       </section>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Playlist } from "../models/Playlist"
 import type { Song } from "../models/Song"
+import { useNotification } from "./useNotification"
 
 type StoredSong = Omit<Song, "file">
 
@@ -17,6 +18,47 @@ type StoredState = {
 const STORAGE_KEY = "playlists"
 const FAVORITES_PLAYLIST = "Favoritos"
 const MAX_PLAYLISTS = 5
+const MAX_LIBRARY_SONGS = 50
+const FALLBACK_COVER_URL = "/default/krisR.webp"
+
+const normalizeSongText = (value: string) => {
+  return value
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+}
+
+const createSongKey = (song: Pick<Song, "title" | "artist" | "duration" | "sourceUrl">) => {
+  if (song.sourceUrl) {
+    return song.sourceUrl
+  }
+
+  return [
+    normalizeSongText(song.title),
+    normalizeSongText(song.artist),
+    Math.round(song.duration).toString()
+  ].join("|")
+}
+
+const legacyCoverMap: Record<string, string> = {
+  "/default/COVERGANASKRISR.webp": "/default/COVER.webp",
+  "/default/loswawancoconsaborcolombian.webp": "/default/loswawan.webp"
+}
+
+const normalizeCoverUrl = (coverUrl?: string) => {
+  if (!coverUrl) {
+    return FALLBACK_COVER_URL
+  }
+
+  let normalizedCover = coverUrl
+
+  if (normalizedCover.startsWith("/covers/default/")) {
+    normalizedCover = normalizedCover.replace("/covers/default/", "/default/")
+  }
+
+  return legacyCoverMap[normalizedCover] || normalizedCover
+}
 
 const createDefaultPlaylists = () => [new Playlist(FAVORITES_PLAYLIST)]
 
@@ -25,7 +67,10 @@ const hydratePlaylists = (storedPlaylists: StoredPlaylist[]) => {
     const playlist = new Playlist(storedPlaylist.name)
 
     storedPlaylist.songs.forEach((song) => {
-      playlist.addSong(song as Song)
+      playlist.addSong({
+        ...song,
+        coverUrl: normalizeCoverUrl(song.coverUrl)
+      } as Song)
     })
 
     return playlist
@@ -35,7 +80,10 @@ const hydratePlaylists = (storedPlaylists: StoredPlaylist[]) => {
 }
 
 const hydrateLibrarySongs = (storedSongs: StoredSong[]) => {
-  return storedSongs.map((song) => song as Song)
+  return storedSongs.map((song) => ({
+    ...song,
+    coverUrl: normalizeCoverUrl(song.coverUrl)
+  }) as Song)
 }
 
 const serializeSongs = (songs: Song[]): StoredSong[] => {
@@ -108,6 +156,7 @@ const readStoredState = (): StoredState | null => {
 }
 
 export const usePlaylist = () => {
+  const { notify } = useNotification()
     const storedState = readStoredState()
 
     const [librarySongs, setLibrarySongs] = useState<Song[]>(() => {
@@ -132,10 +181,41 @@ export const usePlaylist = () => {
 
     const addSongsToLibrary = (songs: Song[]) => {
       setLibrarySongs((currentSongs) => {
-        const existingIds = new Set(currentSongs.map((song) => song.id))
-        const newSongs = songs.filter((song) => !existingIds.has(song.id))
+        if (currentSongs.length >= MAX_LIBRARY_SONGS) {
+          notify("Límite alcanzado: máximo 50 canciones en biblioteca", { variant: "warning" })
+          return currentSongs
+        }
 
-        return [...currentSongs, ...newSongs]
+        const existingKeys = new Set(currentSongs.map(createSongKey))
+        const uniqueSongs: Song[] = []
+        const seenKeys = new Set<string>()
+
+        songs.forEach((song) => {
+          const songKey = createSongKey(song)
+
+          if (existingKeys.has(songKey) || seenKeys.has(songKey)) {
+            return
+          }
+
+          seenKeys.add(songKey)
+          uniqueSongs.push(song)
+        })
+
+        const duplicateCount = songs.length - uniqueSongs.length
+        const newSongs = uniqueSongs
+        const remainingSlots = MAX_LIBRARY_SONGS - currentSongs.length
+
+        if (duplicateCount > 0) {
+          notify(`Se omitieron ${duplicateCount} canción(es) duplicada(s)`, { variant: "info" })
+        }
+
+        if (newSongs.length > remainingSlots) {
+          notify(`Solo se agregaron ${remainingSlots} canción(es). Límite máximo: 50`, { variant: "warning" })
+        }
+
+        const songsToAdd = newSongs.slice(0, Math.max(0, remainingSlots))
+
+        return [...currentSongs, ...songsToAdd]
       })
     }
 
@@ -148,7 +228,7 @@ export const usePlaylist = () => {
     }
 
     if (playlists.length >= MAX_PLAYLISTS) {
-      alert("Máximo 5 playlists")
+      notify("Máximo 5 playlists", { variant: "warning" })
       return
     }
 

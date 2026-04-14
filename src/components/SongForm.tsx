@@ -1,9 +1,13 @@
 import type { ChangeEvent } from "react"
 import type { Song } from "../models/Song"
+import { useNotification } from "../hooks/useNotification"
+import { getRandomCover } from "../utils/coverSelector"
 
 type Props = {
   onSongsLoaded: (songs: Song[]) => void
 }
+
+const MAX_UPLOAD_BATCH = 10
 
 const readFileAsDataUrl = (file: File) => {
   return new Promise<string>((resolve, reject) => {
@@ -43,7 +47,24 @@ const getAudioDuration = (file: File) => {
   })
 }
 
+const getFileNameWithoutExtension = (fileName: string) => {
+  return fileName.replace(/\.[^/.]+$/, "")
+}
+
+const normalizeSongTitle = (title: string) => {
+  return title
+    .replace(/\s*[-–]\s*copy(?:\s*\(\d+\))?$/i, "")
+    .replace(/\s*\(\d+\)$/i, "")
+    .trim()
+}
+
+const createUploadedFileKey = (file: File) => {
+  return [file.name.toLowerCase().trim(), file.size.toString()].join("|")
+}
+
 const SongForm = ({ onSongsLoaded }: Props) => {
+  const { notify } = useNotification()
+
   const handleFolderUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget
     const files = input.files
@@ -54,14 +75,38 @@ const SongForm = ({ onSongsLoaded }: Props) => {
 
     const audioFiles = Array.from(files).filter((file) => file.type.startsWith("audio/"))
     if (audioFiles.length === 0) {
-      alert("No se encontraron archivos de audio válidos")
+      notify("No se encontraron archivos de audio válidos", { variant: "warning" })
       input.value = ""
       return
     }
 
+    const uniqueFiles: File[] = []
+    const seenKeys = new Set<string>()
+
+    audioFiles.forEach((file) => {
+      const fileKey = createUploadedFileKey(file)
+
+      if (seenKeys.has(fileKey)) {
+        return
+      }
+
+      seenKeys.add(fileKey)
+      uniqueFiles.push(file)
+    })
+
+    if (uniqueFiles.length < audioFiles.length) {
+      notify(`Se omitieron ${audioFiles.length - uniqueFiles.length} archivo(s) duplicado(s) dentro de la carpeta`, { variant: "warning" })
+    }
+
+    const batchFiles = uniqueFiles.slice(0, MAX_UPLOAD_BATCH)
+
+    if (uniqueFiles.length > MAX_UPLOAD_BATCH) {
+      notify(`Solo se procesarán las primeras ${MAX_UPLOAD_BATCH} canciones por carga`, { variant: "info" })
+    }
+
     try {
       const loadedSongs = await Promise.all(
-        audioFiles.map(async (file): Promise<Song | null> => {
+        batchFiles.map(async (file): Promise<Song | null> => {
           try {
             const [duration, sourceUrl] = await Promise.all([
               getAudioDuration(file),
@@ -72,16 +117,15 @@ const SongForm = ({ onSongsLoaded }: Props) => {
               throw new Error(`La canción no tiene contenido reproducible: ${file.name}`)
             }
 
-            const song: Song = {
+            return {
               id: crypto.randomUUID(),
-              title: file.name,
+              title: normalizeSongTitle(getFileNameWithoutExtension(file.name)),
               artist: "Desconocido",
               duration,
+              coverUrl: getRandomCover(),
               file,
               sourceUrl
             }
-
-            return song
           } catch (error) {
             console.error(`Error cargando ${file.name}`, error)
             return null
@@ -92,14 +136,14 @@ const SongForm = ({ onSongsLoaded }: Props) => {
       const songs = loadedSongs.filter((song): song is Song => song !== null)
 
       if (songs.length === 0) {
-        alert("No se pudieron cargar canciones")
+        notify("No se pudieron cargar canciones", { variant: "error" })
         return
       }
 
       onSongsLoaded(songs)
     } catch (error) {
       console.error("Error inesperado al cargar canciones", error)
-      alert("Ocurrió un error al procesar los archivos")
+      notify("Ocurrió un error al procesar los archivos", { variant: "error" })
     } finally {
       input.value = ""
     }
