@@ -119,7 +119,7 @@ function App() {
 
             addSongToPlaylist(selectedPlaylist.name, song)
           }}
-          addButtonLabel={`Agregar a ${selectedPlaylist?.name ?? "playlist"}`}
+          addButtonLabel={`Add ${selectedPlaylist?.name ?? "playlist"}`}
           emptyMessage="Todavía no hay canciones cargadas"
         />
       </section>

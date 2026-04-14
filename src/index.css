@@ -41,12 +41,18 @@ body {
   width: min(980px, 100% - 2rem);
   margin: 0 auto;
   padding: 0.8rem 0 2.4rem;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) minmax(320px, 1.6fr) minmax(210px, 1fr);
+  grid-template-areas:
+    "header header header"
+    "playlists player songs"
+    "tracks tracks tracks";
+  align-items: start;
   gap: 1.2rem;
 }
 
 .app-header {
+  grid-area: header;
   text-align: center;
   animation: slideDown 0.65s ease-out;
 }
@@ -173,6 +179,7 @@ body {
 }
 
 .player-main {
+  grid-area: player;
   padding: 2rem 1.8rem;
 }
 
@@ -339,6 +346,7 @@ body {
 }
 
 .playlist-section {
+  grid-area: playlists;
   animation-delay: 0.12s;
 }
 
@@ -473,10 +481,12 @@ body {
 }
 
 .panel-songs {
+  grid-area: songs;
   animation-delay: 0.2s;
 }
 
 .panel-playlist-tracks {
+  grid-area: tracks;
   animation-delay: 0.28s;
 }
 
@@ -610,6 +620,8 @@ body {
 @media (max-width: 780px) {
   .app-shell {
     width: min(980px, 100% - 1rem);
+    display: flex;
+    flex-direction: column;
     gap: 0.95rem;
   }
 
