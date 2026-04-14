@@ -233,12 +233,6 @@ body {
   font-weight: 700;
 }
 
-.song-artist {
-  margin: 0.35rem 0 0;
-  font-size: 0.95rem;
-  color: var(--text-soft);
-}
-
 .visualizer {
   display: flex;
   align-items: end;
@@ -276,6 +270,7 @@ body {
 }
 
 .progress-bar {
+  cursor: pointer;
   height: 0.36rem;
   border-radius: 999px;
   background: rgba(139, 88, 231, 0.26);
@@ -337,6 +332,7 @@ body {
 
 .volume-icon {
   font-size: 0.95rem;
+  
 }
 
 .volume-slider {

@@ -88,7 +88,7 @@ const MusicPlayer = ({
             <div className="album-art-overlay" aria-hidden="true" />
           </div>
           <h2 className="song-title">{currentSong?.title ?? "No hay canción"}</h2>
-          <p className="song-artist">{currentSong?.artist ?? "Sube una carpeta de canciones"}</p>
+          <p className="song-artist">{currentSong ? formatDuration(duration) : "Sube una carpeta de canciones"}</p>
           <div className="visualizer" aria-hidden="true">
             {Array.from({ length: 7 }).map((_, index) => (
               <span key={index} className="bar" />

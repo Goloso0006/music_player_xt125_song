@@ -42,7 +42,7 @@ const SongList = ({
           >
             <div className="song-info">
               <p className="song-name">{song.title}</p>
-              <p className="song-duration">{song.artist} · {formatDuration(song.duration)}</p>
+              <p className="song-duration">{formatDuration(song.duration)}</p>
             </div>
             <div className="song-actions">
               {onPlay && <button className="btn btn-secondary" type="button" onClick={() => onPlay(song)}>▶ Play</button>}

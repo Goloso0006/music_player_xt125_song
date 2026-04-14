@@ -120,7 +120,6 @@ const SongForm = ({ onSongsLoaded }: Props) => {
             return {
               id: crypto.randomUUID(),
               title: normalizeSongTitle(getFileNameWithoutExtension(file.name)),
-              artist: "Desconocido",
               duration,
               coverUrl: getRandomCover(),
               file,

@@ -29,14 +29,13 @@ const normalizeSongText = (value: string) => {
     .replace(/[\u0300-\u036f]/g, "")
 }
 
-const createSongKey = (song: Pick<Song, "title" | "artist" | "duration" | "sourceUrl">) => {
+const createSongKey = (song: Pick<Song, "title" | "duration" | "sourceUrl">) => {
   if (song.sourceUrl) {
     return song.sourceUrl
   }
 
   return [
     normalizeSongText(song.title),
-    normalizeSongText(song.artist),
     Math.round(song.duration).toString()
   ].join("|")
 }
