@@ -502,7 +502,40 @@ body {
   margin-top: 0.45rem;
 }
 
+.song-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.song-position {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(139, 88, 231, 0.45);
+  background: rgba(70, 38, 207, 0.24);
+  color: var(--color5);
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.song-item.drag-over {
+  border-color: var(--color5);
+  box-shadow: 0 0 0 2px rgba(191, 137, 255, 0.2);
+}
+
+.song-item.dragging {
+  opacity: 0.62;
+}
+
 .song-info {
+  flex: 1;
   min-width: 0;
 }
 
@@ -642,6 +675,14 @@ body {
   .song-actions,
   .playlist-meta {
     width: 100%;
+  }
+
+  .song-main {
+    width: 100%;
+  }
+
+  .song-name {
+    white-space: normal;
   }
 
   .control-btn {

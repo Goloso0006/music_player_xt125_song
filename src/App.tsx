@@ -16,6 +16,7 @@ function App() {
     addSongsToLibrary,
     addSongToPlaylist,
     removeSongFromPlaylist,
+    moveSongInPlaylist,
     createPlaylist,
     deletePlaylist,
     addToFavorites
@@ -82,6 +83,12 @@ function App() {
     removeSongFromPlaylist(selectedPlaylist.name, songId)
   }
 
+  const handleMoveSongInPlaylist = (songId: string, targetIndex: number) => {
+    if (!selectedPlaylist) return
+
+    moveSongInPlaylist(selectedPlaylist.name, songId, targetIndex)
+  }
+
   return (
     <main className="app-shell">
       <NotificationCenter />
@@ -131,6 +138,9 @@ function App() {
           currentSong={currentSong}
           onPlay={handlePlaySong}
           onRemove={handleRemoveSong}
+          onMove={handleMoveSongInPlaylist}
+          enableDragReorder
+          showPositionNumber
           emptyMessage="Esta playlist no tiene canciones"
         />
       </section>

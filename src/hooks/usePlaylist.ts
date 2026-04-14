@@ -289,6 +289,39 @@ export const usePlaylist = () => {
     })
   }
 
+  const moveSongInPlaylist = (playlistName: string, songId: string, targetIndex: number) => {
+    setPlaylists((currentPlaylists) => {
+      return currentPlaylists.map((playlist) => {
+        if (playlist.name !== playlistName) {
+          return playlist
+        }
+
+        const songs = playlist.getSongs()
+        const sourceIndex = songs.findIndex((song) => song.id === songId)
+
+        if (sourceIndex === -1 || songs.length <= 1) {
+          return playlist
+        }
+
+        const safeTargetIndex = Math.max(0, Math.min(targetIndex, songs.length - 1))
+        if (sourceIndex === safeTargetIndex) {
+          return playlist
+        }
+
+        const reorderedSongs = [...songs]
+        const [movedSong] = reorderedSongs.splice(sourceIndex, 1)
+        reorderedSongs.splice(safeTargetIndex, 0, movedSong)
+
+        const updatedPlaylist = new Playlist(playlist.name)
+        reorderedSongs.forEach((song) => {
+          updatedPlaylist.addSong(song)
+        })
+
+        return updatedPlaylist
+      })
+    })
+  }
+
   return {
     librarySongs,
     playlists,
@@ -297,6 +330,7 @@ export const usePlaylist = () => {
     deletePlaylist,
     addSongToPlaylist,
     addToFavorites,
-    removeSongFromPlaylist
+    removeSongFromPlaylist,
+    moveSongInPlaylist
   }
 }
