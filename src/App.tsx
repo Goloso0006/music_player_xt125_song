@@ -23,13 +23,15 @@ function App() {
 
   const {
     currentSong,
+    currentTime,
     setPlaylist,
     play,
     pause,
     next,
     prev,
     playSong,
-    setVolume
+    setVolume,
+    seek
   } = usePlayer()
 
   const [selectedPlaylistName, setSelectedPlaylistName] = useState("Favoritos")
@@ -100,6 +102,8 @@ function App() {
         onNext={next}
         onPrev={prev}
         onVolumeChange={setVolume}
+        currentTime={currentTime}
+        onSeek={seek}
       />
 
       <section className="panel panel-songs">

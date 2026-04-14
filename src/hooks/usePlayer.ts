@@ -5,6 +5,7 @@ import type { Song } from "../models/Song"
 export const usePlayer = () => {
   const [currentPlaylist, setCurrentPlaylist] = useState<Playlist | null>(null)
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
   const audioRef = useRef<HTMLAudioElement>(new Audio())
   const activeObjectUrlRef = useRef<string | null>(null)
 
@@ -48,6 +49,7 @@ export const usePlayer = () => {
           audio.pause()
           audio.src = source
           audio.load()
+          setCurrentTime(0)
         }
 
         await audio.play()
@@ -80,6 +82,7 @@ export const usePlayer = () => {
     if (song) {
       syncCurrentSong(playlist, song)
       setCurrentSong(song)
+      setCurrentTime(0)
     }
   }, [syncCurrentSong])
 
@@ -124,6 +127,7 @@ export const usePlayer = () => {
   const playSong = useCallback((playlist: Playlist, song: Song) => {
     setCurrentPlaylist(playlist)
     setCurrentSong(song)
+    setCurrentTime(0)
     syncCurrentSong(playlist, song)
     void playCurrentSong(song)
   }, [playCurrentSong, syncCurrentSong])
@@ -132,13 +136,34 @@ export const usePlayer = () => {
     audioRef.current.volume = Math.min(1, Math.max(0, value))
   }, [])
 
+  const seek = useCallback((time: number) => {
+    const audio = audioRef.current
+
+    if (!Number.isFinite(time)) {
+      return
+    }
+
+    const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : time
+    const safeTime = Math.min(Math.max(time, 0), duration)
+
+    audio.currentTime = safeTime
+    setCurrentTime(safeTime)
+  }, [])
+
   useEffect(() => {
-    audioRef.current.onended = () => {
+    const audio = audioRef.current
+
+    audio.ontimeupdate = () => {
+      setCurrentTime(audio.currentTime)
+    }
+
+    audio.onended = () => {
       void next()
     }
 
     return () => {
-      audioRef.current.onended = null
+      audio.ontimeupdate = null
+      audio.onended = null
     }
   }, [next])
 
@@ -153,12 +178,14 @@ export const usePlayer = () => {
 
   return {
     currentSong,
+    currentTime,
     setPlaylist,
     play,
     pause,
     next,
     prev,
     playSong,
-    setVolume
+    setVolume,
+    seek
   }
 }

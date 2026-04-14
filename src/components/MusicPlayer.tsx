@@ -1,4 +1,5 @@
 import { useState } from "react"
+import type { MouseEvent } from "react"
 import type { Playlist } from "../models/Playlist"
 import type { Song } from "../models/Song"
 import PlayerControls from "./PlayerControls"
@@ -17,6 +18,8 @@ type Props = {
   onNext: () => void
   onPrev: () => void
   onVolumeChange: (value: number) => void
+  currentTime: number
+  onSeek: (time: number) => void
 }
 
 const formatDuration = (duration: number) => {
@@ -38,10 +41,15 @@ const MusicPlayer = ({
   onPause,
   onNext,
   onPrev,
-  onVolumeChange
+  onVolumeChange,
+  currentTime,
+  onSeek
 }: Props) => {
   const [playlistName, setPlaylistName] = useState("")
   const selectedPlaylist = playlists.find((playlist) => playlist.name === selectedPlaylistName) ?? null
+  const duration = currentSong?.duration ?? 0
+  const safeCurrentTime = Math.max(0, Math.min(currentTime, duration))
+  const percentage = duration > 0 ? (safeCurrentTime / duration) * 100 : 0
 
   const handleCreatePlaylist = () => {
     const trimmedPlaylistName = playlistName.trim()
@@ -53,6 +61,18 @@ const MusicPlayer = ({
     onCreatePlaylist(trimmedPlaylistName)
     onSelectPlaylist(trimmedPlaylistName)
     setPlaylistName("")
+  }
+
+  const handleSeek = (event: MouseEvent<HTMLDivElement>) => {
+    if (duration <= 0) {
+      return
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    const clickX = event.clientX - rect.left
+    const newTime = (clickX / rect.width) * duration
+
+    onSeek(newTime)
   }
 
   return (
@@ -74,13 +94,21 @@ const MusicPlayer = ({
               <span key={index} className="bar" />
             ))}
           </div>
-          <div className="progress-container" aria-hidden="true">
+          <div className="progress-container">
             <div className="time-display">
-              <span>0:00</span>
-              <span>{formatDuration(currentSong?.duration ?? 0)}</span>
+              <span>{formatDuration(safeCurrentTime)}</span>
+              <span>{formatDuration(duration)}</span>
             </div>
-            <div className="progress-bar">
-              <div className="progress-fill" />
+            <div
+              className="progress-bar"
+              role="progressbar"
+              aria-label="Progreso de reproducción"
+              aria-valuemin={0}
+              aria-valuemax={Math.floor(duration)}
+              aria-valuenow={Math.floor(safeCurrentTime)}
+              onClick={handleSeek}
+            >
+              <div className="progress-fill" style={{ width: `${percentage}%` }} />
             </div>
           </div>
           {currentSong && (
