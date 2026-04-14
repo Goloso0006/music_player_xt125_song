@@ -3,6 +3,7 @@ export interface Song {
   title: string
   artist: string
   duration: number
+  coverUrl: string
   file?: File
   sourceUrl?: string
 }
